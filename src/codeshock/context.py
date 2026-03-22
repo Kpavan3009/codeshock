@@ -151,12 +151,41 @@ def build_agents_md(config: CodeshockConfig) -> str:
         sections.append(skills)
         sections.append("")
 
+    # Memory files (cross-session knowledge)
+    memory_dir = claude_home / "projects" / "-Users-pavan-vault" / "memory"
+    if memory_dir.exists():
+        memory_index = memory_dir / "MEMORY.md"
+        content = read_file_safe(memory_index)
+        if content:
+            sections.append("## Developer Memory (cross-session)\n")
+            sections.append(content)
+            sections.append("")
+
     session_log = Path(config.codeshock_dir) / "session-summary.md"
     content = read_file_safe(session_log)
     if content:
         sections.append("## Previous Session Summary\n")
         sections.append(content)
         sections.append("")
+
+    # Previous chat history for continuity
+    chat_log = Path(config.codeshock_dir) / "chat.jsonl"
+    if chat_log.exists():
+        try:
+            import json
+            lines = chat_log.read_text().strip().split("\n")
+            recent = lines[-20:] if len(lines) > 20 else lines
+            if recent:
+                sections.append("## Recent Chat History\n")
+                for line in recent:
+                    if line.strip():
+                        msg = json.loads(line)
+                        role = msg.get("role", "?")
+                        text = msg.get("text", "")[:200]
+                        sections.append(f"**{role}**: {text}")
+                sections.append("")
+        except Exception:
+            pass
 
     sections.append(REVIEW_DIRECTIVE)
 

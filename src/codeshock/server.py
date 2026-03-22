@@ -272,7 +272,19 @@ def start_server(project_dir=None, port=7777, mode="standard"):
     watcher.start()
     STATE["watcher"] = watcher
 
-    print(f"codeshock v1.0.0")
+    # Re-sync context every 5 minutes so AGENTS.md stays fresh
+    def periodic_sync():
+        while True:
+            time.sleep(300)
+            try:
+                sync_context(config)
+            except Exception:
+                pass
+
+    sync_thread = threading.Thread(target=periodic_sync, daemon=True)
+    sync_thread.start()
+
+    print(f"codeshock v1.1.0")
     print(f"Project: {config.project_dir}")
     print(f"Mode: {mode}")
     print(f"")
