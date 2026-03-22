@@ -22,7 +22,8 @@ from .config import load_config, init_codeshock_dir
 from .context import sync_context
 from .session import SessionManager, ReviewRecord
 from .watcher import CodeshockWatcher
-from .reviewer import get_git_diff, run_codex_review, run_codex_chat, token_budget
+from .reviewer import get_git_diff, run_codex_review, run_codex_chat, run_conversation_review, token_budget
+import re as _re
 
 
 app = FastAPI(title="codeshock")
@@ -36,6 +37,79 @@ STATE = {
     "reviews": [],
     "project_dir": None,
 }
+
+
+class TerminalBuffer:
+    """Captures terminal I/O and triggers conversation reviews when Claude finishes responding."""
+
+    def __init__(self, debounce_sec=8):
+        self._buffer = []
+        self._lock = threading.Lock()
+        self._timer = None
+        self._debounce = debounce_sec
+        self._reviewing = False
+        # Strip ANSI escape codes for clean text
+        self._ansi_re = _re.compile(r'\x1b\[[0-9;]*[a-zA-Z]|\x1b\].*?\x07|\x1b[()][AB012]|\x1b\[[\?]?[0-9;]*[hlm]')
+
+    def add_output(self, data: bytes):
+        """Called when Claude Code produces output."""
+        with self._lock:
+            try:
+                text = data.decode("utf-8", errors="ignore")
+                # Strip ANSI codes
+                clean = self._ansi_re.sub("", text)
+                if clean.strip():
+                    self._buffer.append(clean)
+            except Exception:
+                pass
+            # Reset debounce timer - when output stops for N seconds, trigger review
+            if self._timer:
+                self._timer.cancel()
+            self._timer = threading.Timer(self._debounce, self._trigger_review)
+            self._timer.daemon = True
+            self._timer.start()
+
+    def add_input(self, data: str):
+        """Called when user types into Claude Code."""
+        with self._lock:
+            if data.strip() and len(data.strip()) > 2:
+                self._buffer.append(f"\n[USER INPUT]: {data.strip()}\n")
+
+    def _trigger_review(self):
+        if self._reviewing:
+            return
+        self._reviewing = True
+        try:
+            with self._lock:
+                text = "".join(self._buffer)
+                self._buffer.clear()
+
+            # Only review if there's meaningful content (not just prompts/noise)
+            if len(text.strip()) < 100:
+                return
+
+            project_dir = STATE.get("project_dir") or os.getcwd()
+            parsed = run_conversation_review(project_dir, text)
+            if parsed and STATE.get("session"):
+                review = ReviewRecord(
+                    timestamp=time.time(),
+                    files=["[conversation]"],
+                    verdict=parsed["verdict"],
+                    score=parsed["score"],
+                    issues=parsed["issues"],
+                    suggestions=parsed.get("suggestions", []),
+                    summary=parsed["summary"],
+                    thoughts=parsed.get("thoughts", ""),
+                    trigger="live",
+                    diff_size=len(text),
+                )
+                STATE["session"].add_review(review)
+                STATE["reviews"].append(review)
+        finally:
+            self._reviewing = False
+
+
+terminal_buffer = TerminalBuffer(debounce_sec=8)
 
 
 def create_pty_process(cmd, cwd):
@@ -134,6 +208,8 @@ async def terminal_ws(websocket: WebSocket, terminal_id: str):
 
     loop = asyncio.get_event_loop()
 
+    is_claude = terminal_id == "claude"
+
     async def read_output():
         while True:
             try:
@@ -142,6 +218,9 @@ async def terminal_ws(websocket: WebSocket, terminal_id: str):
                     data = os.read(master_fd, 4096)
                     if data:
                         await websocket.send_bytes(data)
+                        # Feed Claude output to the conversation buffer
+                        if is_claude:
+                            terminal_buffer.add_output(data)
                     else:
                         break
             except OSError:
@@ -158,6 +237,9 @@ async def terminal_ws(websocket: WebSocket, terminal_id: str):
                 payload = json.loads(msg["text"])
                 if payload.get("type") == "input":
                     os.write(master_fd, payload["data"].encode())
+                    # Feed user input to the conversation buffer
+                    if is_claude:
+                        terminal_buffer.add_input(payload["data"])
                 elif payload.get("type") == "resize":
                     rows = payload.get("rows", 40)
                     cols = payload.get("cols", 100)

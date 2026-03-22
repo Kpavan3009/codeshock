@@ -669,6 +669,12 @@
             margin-left: 6px;
         }
 
+        .trigger-badge.trigger-live {
+            background: rgba(74, 125, 255, 0.15);
+            color: var(--accent-blue);
+            border: 1px solid rgba(74, 125, 255, 0.3);
+        }
+
         .bottombar {
             display: flex;
             align-items: center;
@@ -796,9 +802,9 @@
                     <div class="empty-state">
                         <div class="empty-state-icon">&#9671;</div>
                         <div class="empty-state-text">
-                            Waiting for changes...<br>
-                            Edit files in Claude Code and<br>
-                            reviews will appear here.
+                            Watching your session...<br>
+                            Use Claude Code on the left.<br>
+                            Codex reviews everything live.
                         </div>
                     </div>
                 </div>
@@ -1167,7 +1173,7 @@
                     <div class="review-card-header">
                         <div style="display:flex;align-items:center;">
                             <span class="verdict-badge ${verdictClass}">${(review.verdict || '?').toUpperCase()}</span>
-                            <span class="trigger-badge">${escHtml(trigger)}</span>
+                            <span class="trigger-badge ${trigger === 'live' ? 'trigger-live' : ''}">${trigger === 'live' ? 'LIVE' : escHtml(trigger)}</span>
                         </div>
                         <span class="review-time">${timeAgo(review.timestamp)}</span>
                     </div>

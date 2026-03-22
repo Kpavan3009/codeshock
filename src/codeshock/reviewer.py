@@ -12,7 +12,13 @@ from .session import ReviewRecord
 _codex_lock = threading.Lock()
 
 
-REVIEW_PROMPT_TEMPLATE = """You are a senior developer reviewing a teammate's code. Be conversational and direct — talk like a real person, not a robot. Share your genuine thoughts on what you see.
+REVIEW_PROMPT_TEMPLATE = """You are an independent code reviewer with zero bias. Review this diff like a real human would. Not a polite AI. A real engineer who has opinions and isn't afraid to share them.
+
+Rules:
+- Rate honestly. 5 is average. Don't inflate scores. Only give 8+ if it's genuinely impressive.
+- If something is wrong, say it directly. Don't soften it.
+- If it's good, say that too. Don't nitpick for the sake of it.
+- Think about: correctness, security, performance, readability, edge cases.
 
 Changed files: {files}
 
@@ -22,16 +28,17 @@ Changed files: {files}
 
 Respond in this format:
 VERDICT: [clean|minor|issues|critical]
-THOUGHTS: 2-4 sentences of your honest take on this code. What stands out? What would you say in a real code review? Be specific, not generic.
+THOUGHTS: 3-5 sentences. Your unfiltered take. What would you actually say in a real code review? Be specific, reference actual code.
 ISSUES:
 1. file:line - description
 SUGGESTIONS:
-1. Brief actionable improvement idea (e.g. "Extract this into a helper", "Add error boundary here", "Consider caching this call")
+1. The best improvement they could make right now (specific and actionable)
+2. Another if relevant
 SCORE: X/10
-SUMMARY: one line
+SUMMARY: one line, honest
 """
 
-THOROUGH_PROMPT_TEMPLATE = """You are a security-focused senior dev doing a thorough review. Check for SQL injection, XSS, CSRF, auth gaps, race conditions, logic errors, hardcoded secrets. Be conversational — share your real thoughts.
+THOROUGH_PROMPT_TEMPLATE = """You are a security auditor with zero tolerance for BS. Check for SQL injection, XSS, CSRF, auth gaps, race conditions, logic errors, hardcoded secrets. Be brutally honest.
 
 Changed files: {files}
 
@@ -41,16 +48,17 @@ Changed files: {files}
 
 Respond in this format:
 VERDICT: [clean|minor|issues|critical]
-THOUGHTS: 2-4 sentences. What's your gut reaction? What's solid, what worries you? Be specific.
+THOUGHTS: 3-5 sentences. What worries you? What's actually solid? Don't sugarcoat. Rate honestly, 5 is average.
 ISSUES:
 1. file:line - description
 SUGGESTIONS:
-1. Specific improvement or hardening idea
+1. Most important hardening or improvement
+2. Second priority if relevant
 SCORE: X/10
-SUMMARY: one line
+SUMMARY: one line, honest
 """
 
-QUICK_PROMPT_TEMPLATE = """Quick scan — just give me your honest first impression of this diff. Any obvious red flags? Any quick wins?
+QUICK_PROMPT_TEMPLATE = """Quick gut check. First impression only. Be honest, don't be nice.
 
 Changed files: {files}
 
@@ -59,14 +67,14 @@ Changed files: {files}
 ```
 
 VERDICT: [clean|minor|issues|critical]
-THOUGHTS: 1-2 sentences, your quick take.
+THOUGHTS: 1-2 sentences. Gut reaction. No filler.
 ISSUES: (numbered list or "none")
-SUGGESTIONS: (1-2 quick improvement ideas, or "none")
+SUGGESTIONS: (1-2 quick wins, or "none")
 SCORE: X/10
 SUMMARY: one line
 """
 
-LEARN_PROMPT_TEMPLATE = """You're mentoring a developer. Review this diff and explain your thinking naturally — like you're pair programming. For each issue, explain why it matters and how to fix it.
+LEARN_PROMPT_TEMPLATE = """You're mentoring a developer. Be honest but constructive. Explain your thinking like you're pair programming. For each issue, explain why it actually matters in the real world.
 
 Changed files: {files}
 
@@ -75,13 +83,14 @@ Changed files: {files}
 ```
 
 VERDICT: [clean|minor|issues|critical]
-THOUGHTS: 2-4 sentences. What do you want this developer to learn from this review?
+THOUGHTS: 3-5 sentences. What should this developer take away? Be honest about skill level you see. Rate fairly, 5 is average.
 ISSUES:
 1. file:line - description
-   WHY: explanation
-   FIX: suggestion
+   WHY: real-world explanation
+   FIX: specific suggestion
 SUGGESTIONS:
-1. What would make this code even better? Be specific and educational.
+1. The most valuable thing they could learn from this code
+2. Another if relevant
 SCORE: X/10
 SUMMARY: one line
 """
@@ -420,3 +429,65 @@ User: {message}
             return "Timed out waiting for codex response."
         except Exception as e:
             return f"Error: {str(e)}"
+
+
+CONVERSATION_REVIEW_PROMPT = """You are an independent senior engineer watching a live coding session. A developer is using an AI assistant (Claude Code) to write code. You have zero loyalty to either side. Your job is to be brutally honest.
+
+Here's what just happened:
+
+{conversation}
+
+Think like a real human reviewing this. Not a polite AI. A real person who's seen a lot of code and has strong opinions.
+
+Rules:
+- If the AI gave bad advice or wrote questionable code, call it out. Don't be nice just because it's an AI.
+- If the developer asked a bad question or is going down the wrong path, say so.
+- If something could be done way better, explain what and why.
+- If it's genuinely good, say that too. Don't nitpick for the sake of it.
+- Rate honestly. A 5 is average. Most code is average. Don't hand out 8s and 9s unless it's actually impressive.
+- Think about: correctness, security, performance, readability, maintainability, edge cases.
+
+Respond in this format:
+VERDICT: [clean|minor|issues|critical]
+THOUGHTS: 3-5 sentences. Your unfiltered, honest reaction. What would you actually say to this developer if you were sitting next to them? Be specific, reference actual code or decisions you saw.
+SUGGESTIONS:
+1. The single best thing they could do differently right now (be specific and actionable)
+2. Another suggestion if you have one (or skip if nothing else stands out)
+SCORE: X/10
+SUMMARY: one line, honest
+"""
+
+
+def run_conversation_review(project_dir: str, conversation_text: str) -> Optional[Dict]:
+    """Review a Claude Code conversation exchange. Returns parsed review dict or None."""
+    if not conversation_text.strip() or len(conversation_text.strip()) < 50:
+        return None
+
+    allowed, reason = token_budget.can_call()
+    if not allowed:
+        return None
+
+    prompt = CONVERSATION_REVIEW_PROMPT.format(
+        conversation=conversation_text[:8000],
+    )
+
+    with _codex_lock:
+        try:
+            result = subprocess.run(
+                ["codex", "exec", prompt],
+                capture_output=True,
+                text=True,
+                cwd=project_dir,
+                timeout=120,
+            )
+            token_budget.record_call()
+            output = result.stdout.strip()
+            if not output:
+                output = result.stderr.strip()
+            if not output:
+                return None
+        except Exception:
+            return None
+
+    parsed = parse_review_output(output)
+    return parsed
