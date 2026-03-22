@@ -2,57 +2,25 @@
 
 Your AI writes code. Who reviews it?
 
-codeshock puts a second brain next to your primary coding agent. Claude Code generates, Codex reviews, and you see everything in a split terminal with a live review dashboard. No copy-pasting between tools, no manual review triggers. You code, it watches.
+codeshock puts a second brain next to your primary coding agent. Claude Code generates, Codex reviews, and you see everything side by side in your browser. No copy-pasting between tools, no manual review triggers. You code, it watches.
 
 ## What this actually does
 
-You run `codeshock` in a project directory. It opens a split terminal:
+You run `codeshock` in a project directory. It opens a web interface in your browser:
 
-- **Left (70%)**: Claude Code. Your workspace. Nothing changes about how you work.
-- **Right (30%)**: A live review dashboard. Every time you save a file, commit, or push, Codex automatically reviews the diff and shows results here.
+- **Left panel**: A full Claude Code terminal session. Type prompts, write code, commit, push. Everything you normally do.
+- **Right panel**: A live review dashboard. Every time you save a file, commit, or push, Codex automatically reviews the diff and shows the results in real time.
 
 Both tools share the same project context. Your CLAUDE.md, your primer, your skills, your lessons, your TODOs, your git history. codeshock reads all of it and translates it into an AGENTS.md that Codex understands natively. Same knowledge, different engine.
 
-```
-+-------------------------------------+----------------------+
-|                                     | REVIEW DASHBOARD     |
-|    CLAUDE CODE                      |                      |
-|                                     | Session: 1h 23m      |
-|    Your full workspace.             | Reviews: 12          |
-|    Work like you normally do.       | Avg score: 8.4/10    |
-|                                     |                      |
-|                                     | LATEST               |
-|                                     | >> auth.js     7/10  |
-|                                     |    XSS risk ln:34    |
-|                                     |                      |
-|                                     | . utils.js    10/10  |
-|                                     |    Clean             |
-|                                     |                      |
-|                                     | >> api.js      6/10  |
-|                                     |    No rate limit     |
-|                                     |                      |
-|                                     | HOT FILES            |
-|                                     |  auth.js ####. 12    |
-|                                     |  data.js ##... 6     |
-|                                     |                      |
-|                                     | TRENDS               |
-|                                     |  Score: going up     |
-|                                     |                      |
-|                                     | RECURRING            |
-|                                     |  1. Missing input    |
-|                                     |     validation (3x)  |
-+-------------------------------------+----------------------+
-| codeshock v1.0 | Watching | Last: 8s ago | Score: 8.4        |
-+----------------------------------------------------------+
-```
+The left panel is a real terminal session rendered with xterm.js. Full color, cursor, scrolling, input. Claude Code runs exactly as it would in your native terminal. The right panel is a structured review dashboard with score trends, hot file tracking, and recurring issue detection.
 
 ## Setup
 
-You need three things installed:
+You need two things installed and authenticated:
 
-1. [Claude Code](https://claude.ai/download) (authenticated)
-2. [Codex CLI](https://github.com/openai/codex) (authenticated): `npm i -g @openai/codex`
-3. [tmux](https://github.com/tmux/tmux): `brew install tmux` (mac) or `apt install tmux` (linux)
+1. [Claude Code](https://claude.ai/download)
+2. [Codex CLI](https://github.com/openai/codex): `npm i -g @openai/codex`
 
 Then:
 
@@ -63,45 +31,42 @@ pip install codeshock
 ## Usage
 
 ```bash
-# Start in current directory
 codeshock
+```
 
-# Start in a specific project
-codeshock -p /path/to/project
+That's it. Your browser opens with the full interface.
 
-# Review modes
+```bash
+codeshock -p /path/to/project       # Specify project directory
+codeshock -m paranoid                # Deep security review mode
+codeshock --port 9000                # Custom port
+codeshock --no-browser               # Don't auto-open browser
+```
+
+### Review modes
+
+```bash
 codeshock -m quick       # Fast surface scan
 codeshock -m standard    # Default balanced review
 codeshock -m thorough    # Deep security + logic review
-codeshock -m paranoid    # Everything. OWASP, race conditions, edge cases.
-codeshock -m learn       # Reviews include explanations (good for learning)
+codeshock -m paranoid    # OWASP, race conditions, edge cases
+codeshock -m learn       # Reviews include explanations
 ```
 
-### Commands
+### Other commands
 
 ```bash
-codeshock              # Launch split terminal with live reviews
-codeshock sync         # Rebuild AGENTS.md from your Claude Code context
-codeshock reviews      # View past reviews in terminal
-codeshock stats        # Aggregate stats across sessions
-codeshock export       # Export reviews as markdown report
+codeshock sync            # Rebuild AGENTS.md from your Claude Code context
+codeshock reviews         # View past reviews in terminal
+codeshock stats           # Aggregate stats across sessions
+codeshock export          # Export reviews as markdown report
 codeshock export -f json  # Export as JSON
-codeshock init         # Initialize .codeshock/ config in project
+codeshock init            # Initialize .codeshock/ config in project
 ```
-
-### Keyboard shortcuts (in the review panel)
-
-| Key | Action |
-|-----|--------|
-| `d` | Expand detail on selected review |
-| `h` | Show full review history |
-| `f` | Set focus mode (e.g. "focus on SQL injection") |
-| `p` | Pause/resume auto-review |
-| `q` | Quit review panel |
 
 ## How the context sync works
 
-This is the part that matters. When you launch codeshock, it reads:
+This is what makes codeshock different from running two terminals side by side. When you launch codeshock, it reads:
 
 - `~/.claude/CLAUDE.md` (your global preferences)
 - `~/.claude/primer.md` (your current state)
@@ -122,11 +87,28 @@ A background daemon watches your project directory.
 
 **On file save** (debounced 3 seconds): captures `git diff`, sends to Codex for review.
 
-**On git commit**: captures the commit diff, sends for review immediately.
+**On git commit**: captures the commit diff, reviews immediately.
 
 **On git push**: full thorough review before code hits remote.
 
-Reviews appear in the right panel as structured cards with verdict, score, file references, and line numbers. No raw terminal output to parse.
+Reviews appear in the right panel as structured cards with verdict, score, file references, and line numbers.
+
+## The web interface
+
+The browser interface has:
+
+- Full xterm.js terminal for Claude Code (left panel, resizable)
+- Live review dashboard (right panel) with:
+  - Session stats: avg score, total reviews, total issues
+  - Score trend sparkline
+  - Review cards with verdict badges (clean/minor/issues/critical), file names, issue descriptions, and 10-point score bars
+  - Hot files heatmap showing most-reviewed files
+  - Recurring issues tracker
+- Top bar with live session stats and watching indicator
+- Bottom bar with review mode selector
+- Draggable divider to resize panels
+
+Everything updates in real time via WebSocket.
 
 ## Configuration
 
@@ -138,7 +120,6 @@ debounce_seconds = 3
 review_on_save = true
 review_on_commit = true
 review_on_push = true
-pane_ratio = "70:30"
 
 [review]
 depth = "standard"
@@ -166,8 +147,6 @@ Flag files that need extra scrutiny:
 priority_files = ["auth.js", "api.js", "middleware.js"]
 ```
 
-These get thorough reviews even when the global mode is set to quick.
-
 ### Focus mode
 
 Tell Codex to focus on a specific concern:
@@ -176,42 +155,21 @@ Tell Codex to focus on a specific concern:
 focus = ["security", "SQL injection"]
 ```
 
-Or press `f` in the review panel to set focus on the fly.
-
-## What gets stored
+## Architecture
 
 ```
-.codeshock/
-  config.toml            # Your preferences
-  session.jsonl           # Full session log
-  session-summary.md      # Summary for next session
-  agents.md.generated     # Generated AGENTS.md (for reference)
-  reviews/                # Individual review JSONs
-  queue/                  # Pending review diffs
-```
-
-The `.codeshock/.gitignore` excludes session data and reviews from git by default. The AGENTS.md at your project root is also auto-generated and should be gitignored.
-
-## Project structure
-
-```
-codeshock/
-  pyproject.toml
-  README.md
-  LICENSE
-  .gitignore
-  src/
-    codeshock/
-      __init__.py
-      __main__.py
-      cli.py            # Entry point and commands
-      launcher.py       # tmux session management
-      watcher.py        # File system watcher + git monitor
-      reviewer.py       # Diff capture, Codex execution, output parsing
-      context.py        # CLAUDE.md to AGENTS.md sync engine
-      session.py        # Session log, stats, recurring issues
-      display.py        # Rich terminal dashboard
-      config.py         # Config loading and defaults
+Browser (localhost:7777)
+  |
+  |-- WebSocket /ws/terminal/claude  -->  PTY process (claude CLI)
+  |-- WebSocket /ws/reviews          -->  Live review feed
+  |-- GET /api/reviews               -->  Review history + stats
+  |
+FastAPI server (Python)
+  |
+  |-- File watcher (watchdog)        -->  Detects changes
+  |-- Reviewer (codex exec)          -->  Runs Codex reviews
+  |-- Context sync                   -->  CLAUDE.md -> AGENTS.md
+  |-- Session manager                -->  Persistence + analytics
 ```
 
 ## Requirements
@@ -219,14 +177,13 @@ codeshock/
 - Python 3.10+
 - Claude Code CLI (authenticated)
 - Codex CLI (authenticated)
-- tmux
 - macOS or Linux (Windows via WSL)
 
 ## How it compares
 
 There are other multi-agent orchestrators out there. Most of them are platforms with dozens of commands or desktop apps with subscription tiers. codeshock is one command. It does one thing: puts an intelligent reviewer next to your coding agent with shared context and zero setup.
 
-No frameworks. No agent swarms. No 50-command plugin systems. Just a watcher, a reviewer, and a dashboard.
+No frameworks. No agent swarms. No 50-command plugin systems. Just a watcher, a reviewer, and a browser.
 
 ## License
 

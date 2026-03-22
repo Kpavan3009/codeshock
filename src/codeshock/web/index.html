@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>codeshock</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #111118;
+            --bg-card: #16161f;
+            --bg-hover: #1c1c28;
+            --border: #252530;
+            --border-active: #3a3a50;
+            --text-primary: #e4e4ed;
+            --text-secondary: #8888a0;
+            --text-dim: #55556a;
+            --accent-blue: #4a7dff;
+            --accent-green: #34d399;
+            --accent-yellow: #fbbf24;
+            --accent-red: #f87171;
+            --accent-purple: #a78bfa;
+            --glow-blue: rgba(74, 125, 255, 0.15);
+            --glow-green: rgba(52, 211, 153, 0.15);
+            --glow-red: rgba(248, 113, 113, 0.15);
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            height: 48px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        .topbar-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .logo {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            font-size: 15px;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .topbar-badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+
+        .topbar-stats {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .stat-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent-green);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .main-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .panel {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel-claude {
+            flex: 7;
+            border-right: 1px solid var(--border);
+        }
+
+        .panel-review {
+            flex: 3;
+            min-width: 340px;
+            max-width: 480px;
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 16px;
+            height: 40px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        .panel-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+        }
+
+        .panel-indicator {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--accent-green);
+            box-shadow: 0 0 8px var(--glow-green);
+        }
+
+        .terminal-wrap {
+            flex: 1;
+            padding: 4px;
+            background: var(--bg-primary);
+            overflow: hidden;
+        }
+
+        .terminal-wrap .xterm {
+            height: 100%;
+        }
+
+        .review-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .review-content::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .review-content::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .review-content::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 2px;
+        }
+
+        .review-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+
+        .review-stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 12px;
+            text-align: center;
+        }
+
+        .review-stat-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 20px;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .review-stat-label {
+            font-size: 10px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 4px;
+        }
+
+        .score-value { color: var(--accent-green); }
+        .reviews-value { color: var(--accent-blue); }
+        .issues-value { color: var(--accent-yellow); }
+
+        .review-section-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-dim);
+            padding: 8px 0 4px;
+        }
+
+        .review-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            transition: border-color 0.2s;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .review-card:hover {
+            border-color: var(--border-active);
+        }
+
+        .review-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .verdict-badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .verdict-clean {
+            background: var(--glow-green);
+            color: var(--accent-green);
+            border: 1px solid rgba(52, 211, 153, 0.3);
+        }
+
+        .verdict-minor {
+            background: rgba(251, 191, 36, 0.1);
+            color: var(--accent-yellow);
+            border: 1px solid rgba(251, 191, 36, 0.3);
+        }
+
+        .verdict-issues {
+            background: var(--glow-red);
+            color: var(--accent-red);
+            border: 1px solid rgba(248, 113, 113, 0.3);
+        }
+
+        .verdict-critical {
+            background: rgba(248, 113, 113, 0.2);
+            color: #ff4444;
+            border: 1px solid rgba(255, 68, 68, 0.4);
+        }
+
+        .review-time {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: var(--text-dim);
+        }
+
+        .review-files {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        .review-issue {
+            display: flex;
+            gap: 8px;
+            padding: 4px 0;
+            font-size: 12px;
+        }
+
+        .issue-location {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--accent-blue);
+            white-space: nowrap;
+        }
+
+        .issue-desc {
+            color: var(--text-secondary);
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .review-score {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .score-bar {
+            display: flex;
+            gap: 2px;
+        }
+
+        .score-segment {
+            width: 16px;
+            height: 4px;
+            border-radius: 1px;
+            background: var(--bg-hover);
+        }
+
+        .score-segment.filled { background: var(--accent-green); }
+        .score-segment.filled-mid { background: var(--accent-yellow); }
+        .score-segment.filled-low { background: var(--accent-red); }
+
+        .sparkline-container {
+            display: flex;
+            align-items: flex-end;
+            gap: 2px;
+            height: 24px;
+            padding: 4px 0;
+        }
+
+        .spark-bar {
+            width: 6px;
+            border-radius: 1px 1px 0 0;
+            background: var(--accent-blue);
+            opacity: 0.6;
+            transition: height 0.3s, opacity 0.2s;
+            min-height: 2px;
+        }
+
+        .spark-bar:last-child {
+            opacity: 1;
+        }
+
+        .hot-files-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .hot-file {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+        }
+
+        .hot-file-name {
+            color: var(--text-secondary);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 180px;
+        }
+
+        .hot-file-bar {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .hot-bar-visual {
+            display: flex;
+            gap: 1px;
+        }
+
+        .hot-bar-seg {
+            width: 8px;
+            height: 8px;
+            border-radius: 1px;
+            background: var(--accent-purple);
+            opacity: 0.7;
+        }
+
+        .hot-bar-seg.empty {
+            background: var(--bg-hover);
+        }
+
+        .hot-file-count {
+            color: var(--text-dim);
+            font-size: 10px;
+            min-width: 16px;
+            text-align: right;
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 200px;
+            color: var(--text-dim);
+            text-align: center;
+            gap: 8px;
+        }
+
+        .empty-state-icon {
+            font-size: 32px;
+            opacity: 0.3;
+        }
+
+        .empty-state-text {
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .recurring-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 12px;
+            padding: 4px 0;
+        }
+
+        .recurring-desc {
+            color: var(--accent-yellow);
+            max-width: 220px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .recurring-count {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: var(--text-dim);
+        }
+
+        .trigger-badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 9px;
+            padding: 1px 5px;
+            border-radius: 3px;
+            background: var(--bg-hover);
+            color: var(--text-dim);
+            margin-left: 6px;
+        }
+
+        .bottombar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            height: 28px;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: var(--text-dim);
+            flex-shrink: 0;
+        }
+
+        .bottombar-left, .bottombar-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .mode-select {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            padding: 1px 6px;
+            cursor: pointer;
+        }
+
+        .mode-select:focus { outline: 1px solid var(--accent-blue); }
+
+        .resize-handle {
+            width: 4px;
+            cursor: col-resize;
+            background: transparent;
+            transition: background 0.2s;
+            flex-shrink: 0;
+        }
+
+        .resize-handle:hover, .resize-handle.dragging {
+            background: var(--accent-blue);
+        }
+    </style>
+</head>
+<body>
+    <div class="topbar">
+        <div class="topbar-left">
+            <span class="logo">codeshock</span>
+            <span class="topbar-badge" id="project-name">loading...</span>
+        </div>
+        <div class="topbar-stats">
+            <div class="stat-item">
+                <div class="stat-dot"></div>
+                <span>watching</span>
+            </div>
+            <div class="stat-item">
+                <span id="stat-reviews">0 reviews</span>
+            </div>
+            <div class="stat-item">
+                <span id="stat-score">--/10</span>
+            </div>
+            <div class="stat-item">
+                <span id="stat-duration">0m</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="panel panel-claude">
+            <div class="panel-header">
+                <span class="panel-title">Claude Code</span>
+                <div class="panel-indicator" id="claude-indicator"></div>
+            </div>
+            <div class="terminal-wrap" id="claude-terminal"></div>
+        </div>
+
+        <div class="resize-handle" id="resize-handle"></div>
+
+        <div class="panel panel-review">
+            <div class="panel-header">
+                <span class="panel-title">Codex Reviews</span>
+                <div class="panel-indicator" id="review-indicator"></div>
+            </div>
+            <div class="review-content" id="review-content">
+                <div class="review-stats" id="review-stats">
+                    <div class="review-stat-card">
+                        <div class="review-stat-value score-value" id="avg-score">--</div>
+                        <div class="review-stat-label">avg score</div>
+                    </div>
+                    <div class="review-stat-card">
+                        <div class="review-stat-value reviews-value" id="total-reviews">0</div>
+                        <div class="review-stat-label">reviews</div>
+                    </div>
+                    <div class="review-stat-card">
+                        <div class="review-stat-value issues-value" id="total-issues">0</div>
+                        <div class="review-stat-label">issues</div>
+                    </div>
+                </div>
+
+                <div id="sparkline-section" style="display:none;">
+                    <div class="review-section-title">Score trend</div>
+                    <div class="sparkline-container" id="sparkline"></div>
+                </div>
+
+                <div id="reviews-list">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">&#9671;</div>
+                        <div class="empty-state-text">
+                            Waiting for changes...<br>
+                            Edit files in Claude Code and<br>
+                            reviews will appear here.
+                        </div>
+                    </div>
+                </div>
+
+                <div id="hotfiles-section" style="display:none;">
+                    <div class="review-section-title">Hot files</div>
+                    <div class="hot-files-list" id="hotfiles-list"></div>
+                </div>
+
+                <div id="recurring-section" style="display:none;">
+                    <div class="review-section-title">Recurring issues</div>
+                    <div id="recurring-list"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="bottombar">
+        <div class="bottombar-left">
+            <span>codeshock v1.0.0</span>
+            <span id="last-review">last review: never</span>
+        </div>
+        <div class="bottombar-right">
+            <span>mode:</span>
+            <select class="mode-select" id="mode-select">
+                <option value="quick">quick</option>
+                <option value="standard" selected>standard</option>
+                <option value="thorough">thorough</option>
+                <option value="paranoid">paranoid</option>
+                <option value="learn">learn</option>
+            </select>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-web-links@0.11.0/lib/addon-web-links.min.js"></script>
+    <script>
+        const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsBase = `${wsProtocol}//${location.host}`;
+
+        const claudeTermEl = document.getElementById('claude-terminal');
+
+        const claudeTerm = new Terminal({
+            fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+            fontSize: 13,
+            lineHeight: 1.35,
+            cursorBlink: true,
+            cursorStyle: 'bar',
+            theme: {
+                background: '#0a0a0f',
+                foreground: '#e4e4ed',
+                cursor: '#4a7dff',
+                cursorAccent: '#0a0a0f',
+                selectionBackground: 'rgba(74, 125, 255, 0.3)',
+                black: '#1a1a2e',
+                red: '#f87171',
+                green: '#34d399',
+                yellow: '#fbbf24',
+                blue: '#4a7dff',
+                magenta: '#a78bfa',
+                cyan: '#67e8f9',
+                white: '#e4e4ed',
+                brightBlack: '#55556a',
+                brightRed: '#fca5a5',
+                brightGreen: '#6ee7b7',
+                brightYellow: '#fde68a',
+                brightBlue: '#93b4ff',
+                brightMagenta: '#c4b5fd',
+                brightCyan: '#a5f3fc',
+                brightWhite: '#ffffff',
+            },
+        });
+
+        const fitAddon = new FitAddon.FitAddon();
+        const webLinksAddon = new WebLinksAddon.WebLinksAddon();
+        claudeTerm.loadAddon(fitAddon);
+        claudeTerm.loadAddon(webLinksAddon);
+        claudeTerm.open(claudeTermEl);
+        fitAddon.fit();
+
+        let claudeWs = null;
+
+        function connectClaude() {
+            claudeWs = new WebSocket(`${wsBase}/ws/terminal/claude`);
+            claudeWs.binaryType = 'arraybuffer';
+
+            claudeWs.onopen = () => {
+                document.getElementById('claude-indicator').style.background = 'var(--accent-green)';
+                const dims = fitAddon.proposeDimensions();
+                if (dims) {
+                    claudeWs.send(JSON.stringify({ type: 'resize', rows: dims.rows, cols: dims.cols }));
+                }
+            };
+
+            claudeWs.onmessage = (event) => {
+                if (event.data instanceof ArrayBuffer) {
+                    claudeTerm.write(new Uint8Array(event.data));
+                } else {
+                    claudeTerm.write(event.data);
+                }
+            };
+
+            claudeWs.onclose = () => {
+                document.getElementById('claude-indicator').style.background = 'var(--accent-red)';
+                claudeTerm.write('\r\n\x1b[31m  Session ended. Refresh to reconnect.\x1b[0m\r\n');
+            };
+
+            claudeWs.onerror = () => {
+                document.getElementById('claude-indicator').style.background = 'var(--accent-red)';
+            };
+        }
+
+        claudeTerm.onData((data) => {
+            if (claudeWs && claudeWs.readyState === WebSocket.OPEN) {
+                claudeWs.send(JSON.stringify({ type: 'input', data: data }));
+            }
+        });
+
+        connectClaude();
+
+        window.addEventListener('resize', () => {
+            fitAddon.fit();
+            if (claudeWs && claudeWs.readyState === WebSocket.OPEN) {
+                const dims = fitAddon.proposeDimensions();
+                if (dims) {
+                    claudeWs.send(JSON.stringify({ type: 'resize', rows: dims.rows, cols: dims.cols }));
+                }
+            }
+        });
+
+        const resizeHandle = document.getElementById('resize-handle');
+        const panelClaude = document.querySelector('.panel-claude');
+        const panelReview = document.querySelector('.panel-review');
+        let isResizing = false;
+
+        resizeHandle.addEventListener('mousedown', (e) => {
+            isResizing = true;
+            resizeHandle.classList.add('dragging');
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none';
+            e.preventDefault();
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isResizing) return;
+            const container = document.querySelector('.main-container');
+            const rect = container.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const totalWidth = rect.width;
+            const claudeWidth = Math.max(300, Math.min(totalWidth - 340, x));
+            const reviewWidth = totalWidth - claudeWidth - 4;
+            panelClaude.style.flex = 'none';
+            panelClaude.style.width = claudeWidth + 'px';
+            panelReview.style.flex = 'none';
+            panelReview.style.width = reviewWidth + 'px';
+            fitAddon.fit();
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isResizing) {
+                isResizing = false;
+                resizeHandle.classList.remove('dragging');
+                document.body.style.cursor = '';
+                document.body.style.userSelect = '';
+            }
+        });
+
+        function timeAgo(ts) {
+            const delta = (Date.now() / 1000) - ts;
+            if (delta < 60) return Math.floor(delta) + 's ago';
+            if (delta < 3600) return Math.floor(delta / 60) + 'm ago';
+            return Math.floor(delta / 3600) + 'h ago';
+        }
+
+        function formatDuration(seconds) {
+            const m = Math.floor(seconds / 60);
+            const h = Math.floor(m / 60);
+            if (h > 0) return h + 'h ' + (m % 60) + 'm';
+            return m + 'm';
+        }
+
+        function buildScoreBar(score) {
+            let html = '<div class="score-bar">';
+            for (let i = 1; i <= 10; i++) {
+                let cls = 'score-segment';
+                if (i <= score) {
+                    if (score >= 8) cls += ' filled';
+                    else if (score >= 5) cls += ' filled-mid';
+                    else cls += ' filled-low';
+                }
+                html += `<div class="${cls}"></div>`;
+            }
+            html += '</div>';
+            return html;
+        }
+
+        function buildReviewCard(review) {
+            const verdictClass = 'verdict-' + (review.verdict || 'unknown');
+            const trigger = review.trigger || 'save';
+            let issuesHtml = '';
+            if (review.issues && review.issues.length > 0) {
+                review.issues.slice(0, 4).forEach(issue => {
+                    issuesHtml += `
+                        <div class="review-issue">
+                            <span class="issue-location">${issue.location || '?'}</span>
+                            <span class="issue-desc">${(issue.description || '').substring(0, 60)}</span>
+                        </div>`;
+                });
+                if (review.issues.length > 4) {
+                    issuesHtml += `<div class="review-issue"><span class="issue-desc" style="color:var(--text-dim)">+${review.issues.length - 4} more</span></div>`;
+                }
+            } else if (review.summary) {
+                issuesHtml = `<div style="font-size:12px;color:var(--text-dim);padding:2px 0;">${review.summary}</div>`;
+            }
+
+            return `
+                <div class="review-card">
+                    <div class="review-card-header">
+                        <div style="display:flex;align-items:center;">
+                            <span class="verdict-badge ${verdictClass}">${(review.verdict || '?').toUpperCase()}</span>
+                            <span class="trigger-badge">${trigger}</span>
+                        </div>
+                        <span class="review-time">${timeAgo(review.timestamp)}</span>
+                    </div>
+                    <div class="review-files">${(review.files || []).slice(0, 3).join(', ')}${review.files && review.files.length > 3 ? ' +' + (review.files.length - 3) : ''}</div>
+                    ${issuesHtml}
+                    <div class="review-score">
+                        <span style="color:var(--text-dim)">Score</span>
+                        ${buildScoreBar(review.score || 0)}
+                        <span style="color:${(review.score || 0) >= 8 ? 'var(--accent-green)' : (review.score || 0) >= 5 ? 'var(--accent-yellow)' : 'var(--accent-red)'};font-weight:600;">${review.score || 0}/10</span>
+                    </div>
+                </div>`;
+        }
+
+        function updateDashboard(data) {
+            if (!data) return;
+            const stats = data.stats || {};
+            const reviews = data.reviews || [];
+
+            document.getElementById('avg-score').textContent = stats.avg_score > 0 ? stats.avg_score.toFixed(1) : '--';
+            document.getElementById('total-reviews').textContent = stats.total || 0;
+            document.getElementById('total-issues').textContent = stats.issues || 0;
+            document.getElementById('stat-reviews').textContent = (stats.total || 0) + ' reviews';
+            document.getElementById('stat-score').textContent = stats.avg_score > 0 ? stats.avg_score.toFixed(1) + '/10' : '--/10';
+            document.getElementById('stat-duration').textContent = formatDuration(stats.duration || 0);
+
+            if (reviews.length > 0) {
+                document.getElementById('last-review').textContent = 'last review: ' + timeAgo(reviews[reviews.length - 1].timestamp);
+            }
+
+            const scores = stats.scores || [];
+            if (scores.length > 0) {
+                document.getElementById('sparkline-section').style.display = 'block';
+                const sparkEl = document.getElementById('sparkline');
+                let sparkHtml = '';
+                const maxScore = 10;
+                scores.slice(-15).forEach(s => {
+                    const height = Math.max(2, (s / maxScore) * 24);
+                    sparkHtml += `<div class="spark-bar" style="height:${height}px;"></div>`;
+                });
+                sparkEl.innerHTML = sparkHtml;
+            }
+
+            if (reviews.length > 0) {
+                const listEl = document.getElementById('reviews-list');
+                listEl.innerHTML = '<div class="review-section-title">Latest reviews</div>';
+                reviews.slice().reverse().slice(0, 10).forEach(r => {
+                    listEl.innerHTML += buildReviewCard(r);
+                });
+            }
+
+            const hotFiles = stats.hot_files || [];
+            if (hotFiles.length > 0) {
+                document.getElementById('hotfiles-section').style.display = 'block';
+                const hotEl = document.getElementById('hotfiles-list');
+                const maxCount = hotFiles[0][1];
+                hotEl.innerHTML = '';
+                hotFiles.forEach(([name, count]) => {
+                    const filled = Math.max(1, Math.round((count / maxCount) * 5));
+                    let barHtml = '';
+                    for (let i = 0; i < 5; i++) {
+                        barHtml += `<div class="hot-bar-seg ${i < filled ? '' : 'empty'}"></div>`;
+                    }
+                    hotEl.innerHTML += `
+                        <div class="hot-file">
+                            <span class="hot-file-name">${name}</span>
+                            <div class="hot-file-bar">
+                                <div class="hot-bar-visual">${barHtml}</div>
+                                <span class="hot-file-count">${count}</span>
+                            </div>
+                        </div>`;
+                });
+            }
+
+            const recurring = stats.recurring || [];
+            if (recurring.length > 0) {
+                document.getElementById('recurring-section').style.display = 'block';
+                const recEl = document.getElementById('recurring-list');
+                recEl.innerHTML = '';
+                recurring.forEach(([desc, count]) => {
+                    recEl.innerHTML += `
+                        <div class="recurring-item">
+                            <span class="recurring-desc">${desc}</span>
+                            <span class="recurring-count">${count}x</span>
+                        </div>`;
+                });
+            }
+        }
+
+        let reviewWs = null;
+
+        function connectReviews() {
+            reviewWs = new WebSocket(`${wsBase}/ws/reviews`);
+
+            reviewWs.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    updateDashboard(data);
+                } catch (e) {}
+            };
+
+            reviewWs.onclose = () => {
+                document.getElementById('review-indicator').style.background = 'var(--accent-red)';
+                setTimeout(connectReviews, 3000);
+            };
+
+            reviewWs.onopen = () => {
+                document.getElementById('review-indicator').style.background = 'var(--accent-green)';
+            };
+        }
+
+        connectReviews();
+
+        fetch('/health').then(r => r.json()).then(data => {
+            if (data.project) {
+                const parts = data.project.split('/');
+                document.getElementById('project-name').textContent = parts[parts.length - 1];
+            }
+        });
+
+        fetch('/api/reviews').then(r => r.json()).then(updateDashboard);
+
+        setInterval(() => {
+            fetch('/api/reviews').then(r => r.json()).then(updateDashboard);
+        }, 5000);
+    </script>
+</body>
+</html>

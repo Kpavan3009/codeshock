@@ -30,6 +30,9 @@ dependencies = [
     "click>=8.0",
     "watchdog>=3.0",
     "rich>=13.0",
+    "fastapi>=0.100.0",
+    "uvicorn[standard]>=0.20.0",
+    "websockets>=11.0",
     "tomli>=2.0; python_version < '3.11'",
 ]
 
@@ -43,3 +46,6 @@ codeshock = "codeshock.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+codeshock = ["web/*.html", "web/*.css", "web/*.js"]
