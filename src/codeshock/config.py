@@ -24,7 +24,7 @@ DEFAULT_CONFIG = {
         "ignore_patterns": [
             "*.md", "*.txt", "*.csv", "*.json", "*.lock",
             "*.png", "*.jpg", "*.gif", "*.svg", "*.ico",
-            ".claudex/*", ".git/*", "node_modules/*", "__pycache__/*",
+            ".codeshock/*", ".git/*", "node_modules/*", "__pycache__/*",
             ".env", ".env.*",
         ],
         "priority_files": [],
@@ -64,12 +64,12 @@ class GeneralConfig:
 
 
 @dataclass
-class ClaudexConfig:
+class CodeshockConfig:
     general: GeneralConfig = field(default_factory=GeneralConfig)
     review: ReviewConfig = field(default_factory=ReviewConfig)
     display: DisplayConfig = field(default_factory=DisplayConfig)
     project_dir: str = ""
-    claudex_dir: str = ""
+    codeshock_dir: str = ""
 
 
 def find_project_root(start_dir: Optional[str] = None) -> Path:
@@ -81,14 +81,14 @@ def find_project_root(start_dir: Optional[str] = None) -> Path:
     return Path(start_dir or os.getcwd()).resolve()
 
 
-def load_config(project_dir: Optional[str] = None) -> ClaudexConfig:
+def load_config(project_dir: Optional[str] = None) -> CodeshockConfig:
     root = find_project_root(project_dir)
-    claudex_dir = root / ".claudex"
-    config_path = claudex_dir / "config.toml"
+    codeshock_dir = root / ".codeshock"
+    config_path = codeshock_dir / "config.toml"
 
-    config = ClaudexConfig(
+    config = CodeshockConfig(
         project_dir=str(root),
-        claudex_dir=str(claudex_dir),
+        codeshock_dir=str(codeshock_dir),
     )
 
     if config_path.exists():
@@ -113,22 +113,22 @@ def load_config(project_dir: Optional[str] = None) -> ClaudexConfig:
     return config
 
 
-def init_claudex_dir(project_dir: Optional[str] = None) -> Path:
+def init_codeshock_dir(project_dir: Optional[str] = None) -> Path:
     root = find_project_root(project_dir)
-    claudex_dir = root / ".claudex"
-    claudex_dir.mkdir(exist_ok=True)
-    (claudex_dir / "reviews").mkdir(exist_ok=True)
-    (claudex_dir / "queue").mkdir(exist_ok=True)
+    codeshock_dir = root / ".codeshock"
+    codeshock_dir.mkdir(exist_ok=True)
+    (codeshock_dir / "reviews").mkdir(exist_ok=True)
+    (codeshock_dir / "queue").mkdir(exist_ok=True)
 
-    config_path = claudex_dir / "config.toml"
+    config_path = codeshock_dir / "config.toml"
     if not config_path.exists():
         config_path.write_text(generate_default_config())
 
-    gitignore = claudex_dir / ".gitignore"
+    gitignore = codeshock_dir / ".gitignore"
     if not gitignore.exists():
         gitignore.write_text("session.jsonl\nqueue/\nreviews/\nagents.md.generated\n")
 
-    return claudex_dir
+    return codeshock_dir
 
 
 def generate_default_config() -> str:
@@ -145,7 +145,7 @@ focus = []
 ignore_patterns = [
     "*.md", "*.txt", "*.csv", "*.json", "*.lock",
     "*.png", "*.jpg", "*.gif", "*.svg", "*.ico",
-    ".claudex/*", ".git/*", "node_modules/*", "__pycache__/*",
+    ".codeshock/*", ".git/*", "node_modules/*", "__pycache__/*",
     ".env", ".env.*",
 ]
 priority_files = []

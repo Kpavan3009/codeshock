@@ -192,7 +192,7 @@ def build_dashboard(session: SessionManager, max_reviews: int = 6) -> Layout:
     )
 
     header = Panel(
-        Align.center(Text("claudex", style="bold white")),
+        Align.center(Text("codeshock", style="bold white")),
         style="blue",
         box=box.HEAVY,
     )
@@ -237,7 +237,7 @@ def build_dashboard(session: SessionManager, max_reviews: int = 6) -> Layout:
 
     last_review = format_time_ago(reviews[-1].timestamp) if reviews else "never"
     footer_text = Text()
-    footer_text.append(" claudex v1.0", style="bold blue")
+    footer_text.append(" codeshock v1.0", style="bold blue")
     footer_text.append(" │ ", style="dim")
     footer_text.append("Watching", style="green")
     footer_text.append(" │ ", style="dim")

@@ -5,10 +5,10 @@ import time
 from pathlib import Path
 from typing import Optional
 
-from .config import ClaudexConfig
+from .config import CodeshockConfig
 
 
-SESSION_NAME = "claudex"
+SESSION_NAME = "codeshock"
 
 
 def check_dependencies() -> dict:
@@ -37,7 +37,7 @@ def get_pane_sizes(ratio: str) -> tuple:
         return 70, 30
 
 
-def launch_tmux_session(config: ClaudexConfig) -> bool:
+def launch_tmux_session(config: CodeshockConfig) -> bool:
     deps = check_dependencies()
 
     if not deps["tmux"]:
@@ -57,7 +57,7 @@ def launch_tmux_session(config: ClaudexConfig) -> bool:
     left_pct, right_pct = get_pane_sizes(config.general.pane_ratio)
 
     project_dir = config.project_dir
-    claudex_dir = config.claudex_dir
+    codeshock_dir = config.codeshock_dir
 
     subprocess.run([
         "tmux", "new-session", "-d",
@@ -78,7 +78,7 @@ def launch_tmux_session(config: ClaudexConfig) -> bool:
         "-p", str(right_pct),
     ], timeout=5)
 
-    dashboard_cmd = f"python -m claudex dashboard --project-dir '{project_dir}'"
+    dashboard_cmd = f"python -m codeshock dashboard --project-dir '{project_dir}'"
     subprocess.run([
         "tmux", "send-keys", "-t", f"{SESSION_NAME}:0.1",
         dashboard_cmd, "Enter",

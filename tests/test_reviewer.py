@@ -1,4 +1,4 @@
-from claudex.reviewer import parse_review_output, get_changed_files
+from codeshock.reviewer import parse_review_output, get_changed_files
 
 
 def test_parse_clean_review():

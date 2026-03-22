@@ -2,7 +2,7 @@ import tempfile
 import time
 from pathlib import Path
 
-from claudex.session import SessionManager, ReviewRecord
+from codeshock.session import SessionManager, ReviewRecord
 
 
 def make_review(verdict="clean", score=8, files=None, issues=None):

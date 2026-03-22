@@ -1,17 +1,17 @@
-# claudex
+# codeshock
 
 Your AI writes code. Who reviews it?
 
-claudex puts a second brain next to your primary coding agent. Claude Code generates, Codex reviews, and you see everything in a split terminal with a live review dashboard. No copy-pasting between tools, no manual review triggers. You code, it watches.
+codeshock puts a second brain next to your primary coding agent. Claude Code generates, Codex reviews, and you see everything in a split terminal with a live review dashboard. No copy-pasting between tools, no manual review triggers. You code, it watches.
 
 ## What this actually does
 
-You run `claudex` in a project directory. It opens a split terminal:
+You run `codeshock` in a project directory. It opens a split terminal:
 
 - **Left (70%)**: Claude Code. Your workspace. Nothing changes about how you work.
 - **Right (30%)**: A live review dashboard. Every time you save a file, commit, or push, Codex automatically reviews the diff and shows results here.
 
-Both tools share the same project context. Your CLAUDE.md, your primer, your skills, your lessons, your TODOs, your git history. claudex reads all of it and translates it into an AGENTS.md that Codex understands natively. Same knowledge, different engine.
+Both tools share the same project context. Your CLAUDE.md, your primer, your skills, your lessons, your TODOs, your git history. codeshock reads all of it and translates it into an AGENTS.md that Codex understands natively. Same knowledge, different engine.
 
 ```
 +-------------------------------------+----------------------+
@@ -42,7 +42,7 @@ Both tools share the same project context. Your CLAUDE.md, your primer, your ski
 |                                     |  1. Missing input    |
 |                                     |     validation (3x)  |
 +-------------------------------------+----------------------+
-| claudex v1.0 | Watching | Last: 8s ago | Score: 8.4        |
+| codeshock v1.0 | Watching | Last: 8s ago | Score: 8.4        |
 +----------------------------------------------------------+
 ```
 
@@ -57,36 +57,36 @@ You need three things installed:
 Then:
 
 ```bash
-pip install claudex
+pip install codeshock
 ```
 
 ## Usage
 
 ```bash
 # Start in current directory
-claudex
+codeshock
 
 # Start in a specific project
-claudex -p /path/to/project
+codeshock -p /path/to/project
 
 # Review modes
-claudex -m quick       # Fast surface scan
-claudex -m standard    # Default balanced review
-claudex -m thorough    # Deep security + logic review
-claudex -m paranoid    # Everything. OWASP, race conditions, edge cases.
-claudex -m learn       # Reviews include explanations (good for learning)
+codeshock -m quick       # Fast surface scan
+codeshock -m standard    # Default balanced review
+codeshock -m thorough    # Deep security + logic review
+codeshock -m paranoid    # Everything. OWASP, race conditions, edge cases.
+codeshock -m learn       # Reviews include explanations (good for learning)
 ```
 
 ### Commands
 
 ```bash
-claudex              # Launch split terminal with live reviews
-claudex sync         # Rebuild AGENTS.md from your Claude Code context
-claudex reviews      # View past reviews in terminal
-claudex stats        # Aggregate stats across sessions
-claudex export       # Export reviews as markdown report
-claudex export -f json  # Export as JSON
-claudex init         # Initialize .claudex/ config in project
+codeshock              # Launch split terminal with live reviews
+codeshock sync         # Rebuild AGENTS.md from your Claude Code context
+codeshock reviews      # View past reviews in terminal
+codeshock stats        # Aggregate stats across sessions
+codeshock export       # Export reviews as markdown report
+codeshock export -f json  # Export as JSON
+codeshock init         # Initialize .codeshock/ config in project
 ```
 
 ### Keyboard shortcuts (in the review panel)
@@ -101,7 +101,7 @@ claudex init         # Initialize .claudex/ config in project
 
 ## How the context sync works
 
-This is the part that matters. When you launch claudex, it reads:
+This is the part that matters. When you launch codeshock, it reads:
 
 - `~/.claude/CLAUDE.md` (your global preferences)
 - `~/.claude/primer.md` (your current state)
@@ -114,7 +114,7 @@ This is the part that matters. When you launch claudex, it reads:
 
 It compiles all of this into a single `AGENTS.md` at your project root. Codex reads AGENTS.md natively, the same way Claude Code reads CLAUDE.md. So when Codex reviews your code, it knows your project architecture, your coding standards, what you've been working on, and what mistakes you've made before.
 
-Every time you launch claudex, it rebuilds this file. The context is always current.
+Every time you launch codeshock, it rebuilds this file. The context is always current.
 
 ## How auto-review works
 
@@ -130,7 +130,7 @@ Reviews appear in the right panel as structured cards with verdict, score, file 
 
 ## Configuration
 
-Run `claudex init` to create `.claudex/config.toml` in your project:
+Run `codeshock init` to create `.codeshock/config.toml` in your project:
 
 ```toml
 [general]
@@ -146,7 +146,7 @@ focus = []
 ignore_patterns = [
     "*.md", "*.txt", "*.csv", "*.json", "*.lock",
     "*.png", "*.jpg", "*.gif", "*.svg", "*.ico",
-    ".claudex/*", ".git/*", "node_modules/*", "__pycache__/*",
+    ".codeshock/*", ".git/*", "node_modules/*", "__pycache__/*",
     ".env", ".env.*",
 ]
 priority_files = []
@@ -181,7 +181,7 @@ Or press `f` in the review panel to set focus on the fly.
 ## What gets stored
 
 ```
-.claudex/
+.codeshock/
   config.toml            # Your preferences
   session.jsonl           # Full session log
   session-summary.md      # Summary for next session
@@ -190,18 +190,18 @@ Or press `f` in the review panel to set focus on the fly.
   queue/                  # Pending review diffs
 ```
 
-The `.claudex/.gitignore` excludes session data and reviews from git by default. The AGENTS.md at your project root is also auto-generated and should be gitignored.
+The `.codeshock/.gitignore` excludes session data and reviews from git by default. The AGENTS.md at your project root is also auto-generated and should be gitignored.
 
 ## Project structure
 
 ```
-claudex/
+codeshock/
   pyproject.toml
   README.md
   LICENSE
   .gitignore
   src/
-    claudex/
+    codeshock/
       __init__.py
       __main__.py
       cli.py            # Entry point and commands
@@ -224,7 +224,7 @@ claudex/
 
 ## How it compares
 
-There are other multi-agent orchestrators out there. Most of them are platforms with dozens of commands or desktop apps with subscription tiers. claudex is one command. It does one thing: puts an intelligent reviewer next to your coding agent with shared context and zero setup.
+There are other multi-agent orchestrators out there. Most of them are platforms with dozens of commands or desktop apps with subscription tiers. codeshock is one command. It does one thing: puts an intelligent reviewer next to your coding agent with shared context and zero setup.
 
 No frameworks. No agent swarms. No 50-command plugin systems. Just a watcher, a reviewer, and a dashboard.
 

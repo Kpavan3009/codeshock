@@ -9,13 +9,13 @@ from typing import Callable, Optional
 from watchdog.events import FileSystemEventHandler, FileSystemEvent
 from watchdog.observers import Observer
 
-from .config import ClaudexConfig
+from .config import CodeshockConfig
 from .reviewer import get_git_diff, get_commit_diff, run_codex_review
 from .session import SessionManager
 
 
 class DebouncedHandler(FileSystemEventHandler):
-    def __init__(self, config: ClaudexConfig, session: SessionManager, on_review: Callable):
+    def __init__(self, config: CodeshockConfig, session: SessionManager, on_review: Callable):
         super().__init__()
         self.config = config
         self.session = session
@@ -32,7 +32,7 @@ class DebouncedHandler(FileSystemEventHandler):
                 return True
             if fnmatch.fnmatch(os.path.basename(path), pattern):
                 return True
-        if ".claudex" in rel_path or ".git" in rel_path.split(os.sep):
+        if ".codeshock" in rel_path or ".git" in rel_path.split(os.sep):
             return True
         return False
 
@@ -82,7 +82,7 @@ class DebouncedHandler(FileSystemEventHandler):
 
 
 class GitCommitWatcher(threading.Thread):
-    def __init__(self, config: ClaudexConfig, session: SessionManager, on_review: Callable):
+    def __init__(self, config: CodeshockConfig, session: SessionManager, on_review: Callable):
         super().__init__(daemon=True)
         self.config = config
         self.session = session
@@ -155,8 +155,8 @@ class GitCommitWatcher(threading.Thread):
         self._stop_event.set()
 
 
-class ClaudexWatcher:
-    def __init__(self, config: ClaudexConfig, session: SessionManager, on_review: Callable):
+class CodeshockWatcher:
+    def __init__(self, config: CodeshockConfig, session: SessionManager, on_review: Callable):
         self.config = config
         self.session = session
         self.on_review = on_review

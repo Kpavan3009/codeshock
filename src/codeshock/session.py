@@ -25,10 +25,10 @@ class ReviewRecord:
 
 
 class SessionManager:
-    def __init__(self, claudex_dir: str):
-        self.claudex_dir = Path(claudex_dir)
-        self.session_file = self.claudex_dir / "session.jsonl"
-        self.reviews_dir = self.claudex_dir / "reviews"
+    def __init__(self, codeshock_dir: str):
+        self.codeshock_dir = Path(codeshock_dir)
+        self.session_file = self.codeshock_dir / "session.jsonl"
+        self.reviews_dir = self.codeshock_dir / "reviews"
         self.reviews_dir.mkdir(exist_ok=True)
         self._reviews: List[ReviewRecord] = []
         self._start_time = time.time()
@@ -130,7 +130,7 @@ class SessionManager:
 
     def save_session_summary(self):
         summary = self.generate_session_summary()
-        summary_file = self.claudex_dir / "session-summary.md"
+        summary_file = self.codeshock_dir / "session-summary.md"
         summary_file.write_text(summary)
 
     def export_markdown(self) -> str:

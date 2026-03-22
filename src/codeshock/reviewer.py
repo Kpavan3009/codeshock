@@ -4,7 +4,7 @@ import time
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-from .config import ClaudexConfig
+from .config import CodeshockConfig
 from .session import ReviewRecord
 
 
@@ -187,7 +187,7 @@ def parse_review_output(output: str) -> Dict:
     }
 
 
-def run_codex_review(config: ClaudexConfig, diff: str, trigger: str = "save") -> Optional[ReviewRecord]:
+def run_codex_review(config: CodeshockConfig, diff: str, trigger: str = "save") -> Optional[ReviewRecord]:
     if not diff.strip():
         return None
 
@@ -239,7 +239,7 @@ def run_codex_review(config: ClaudexConfig, diff: str, trigger: str = "save") ->
     )
 
 
-def run_focus_review(config: ClaudexConfig, diff: str, focus: str) -> Optional[ReviewRecord]:
+def run_focus_review(config: CodeshockConfig, diff: str, focus: str) -> Optional[ReviewRecord]:
     if not diff.strip():
         return None
 

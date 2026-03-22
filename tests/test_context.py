@@ -1,16 +1,16 @@
 import tempfile
 from pathlib import Path
 
-from claudex.config import ClaudexConfig, GeneralConfig, ReviewConfig, DisplayConfig
-from claudex.context import build_agents_md
+from codeshock.config import CodeshockConfig, GeneralConfig, ReviewConfig, DisplayConfig
+from codeshock.context import build_agents_md
 
 
 def make_config(tmpdir):
-    claudex_dir = Path(tmpdir) / ".claudex"
-    claudex_dir.mkdir(exist_ok=True)
-    return ClaudexConfig(
+    codeshock_dir = Path(tmpdir) / ".codeshock"
+    codeshock_dir.mkdir(exist_ok=True)
+    return CodeshockConfig(
         project_dir=str(tmpdir),
-        claudex_dir=str(claudex_dir),
+        codeshock_dir=str(codeshock_dir),
     )
 
 

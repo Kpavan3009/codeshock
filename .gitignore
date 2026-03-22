@@ -16,10 +16,10 @@ env/
 *.log
 .DS_Store
 Thumbs.db
-.claudex/session.jsonl
-.claudex/reviews/
-.claudex/queue/
-.claudex/agents.md.generated
+.codeshock/session.jsonl
+.codeshock/reviews/
+.codeshock/queue/
+.codeshock/agents.md.generated
 AGENTS.md
 .pytest_cache/
 .mypy_cache/

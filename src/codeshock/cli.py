@@ -4,10 +4,10 @@ import threading
 import click
 
 from . import __version__
-from .config import load_config, init_claudex_dir
+from .config import load_config, init_codeshock_dir
 from .context import sync_context
 from .session import SessionManager
-from .watcher import ClaudexWatcher
+from .watcher import CodeshockWatcher
 from .display import ReviewDashboard
 from .launcher import launch_tmux_session, attach_session, is_session_running, check_dependencies
 
@@ -30,10 +30,10 @@ def start(project_dir, mode):
     config = load_config(project_dir)
     config.review.depth = mode
 
-    claudex_dir = init_claudex_dir(project_dir)
-    config.claudex_dir = str(claudex_dir)
+    codeshock_dir = init_codeshock_dir(project_dir)
+    config.codeshock_dir = str(codeshock_dir)
 
-    click.echo(f"claudex v{__version__}")
+    click.echo(f"codeshock v{__version__}")
     click.echo(f"Project: {config.project_dir}")
     click.echo(f"Mode: {mode}")
     click.echo("")
@@ -61,10 +61,10 @@ def start(project_dir, mode):
 
 
 def run_dashboard_standalone(config):
-    session = SessionManager(config.claudex_dir)
+    session = SessionManager(config.codeshock_dir)
     dashboard = ReviewDashboard(session)
 
-    watcher = ClaudexWatcher(config, session, lambda review: dashboard.refresh())
+    watcher = CodeshockWatcher(config, session, lambda review: dashboard.refresh())
 
     def shutdown(sig, frame):
         click.echo("\nShutting down...")
@@ -85,13 +85,13 @@ def run_dashboard_standalone(config):
 @click.option("--project-dir", "-p", default=None)
 def dashboard(project_dir):
     config = load_config(project_dir)
-    claudex_dir = init_claudex_dir(project_dir)
-    config.claudex_dir = str(claudex_dir)
+    codeshock_dir = init_codeshock_dir(project_dir)
+    config.codeshock_dir = str(codeshock_dir)
 
-    session = SessionManager(config.claudex_dir)
+    session = SessionManager(config.codeshock_dir)
     dash = ReviewDashboard(session)
 
-    watcher = ClaudexWatcher(config, session, lambda review: dash.refresh())
+    watcher = CodeshockWatcher(config, session, lambda review: dash.refresh())
 
     def shutdown(sig, frame):
         watcher.stop()
@@ -111,8 +111,8 @@ def dashboard(project_dir):
 @click.option("--project-dir", "-p", default=None)
 def sync(project_dir):
     config = load_config(project_dir)
-    init_claudex_dir(project_dir)
-    config.claudex_dir = str(init_claudex_dir(project_dir))
+    init_codeshock_dir(project_dir)
+    config.codeshock_dir = str(init_codeshock_dir(project_dir))
     path = sync_context(config)
     click.echo(f"Context synced to {path}")
     click.echo(f"AGENTS.md written to {config.project_dir}/AGENTS.md")
@@ -122,8 +122,8 @@ def sync(project_dir):
 @click.option("--project-dir", "-p", default=None)
 def reviews(project_dir):
     config = load_config(project_dir)
-    claudex_dir = init_claudex_dir(project_dir)
-    session = SessionManager(str(claudex_dir))
+    codeshock_dir = init_codeshock_dir(project_dir)
+    session = SessionManager(str(codeshock_dir))
 
     if not session.reviews:
         click.echo("No reviews found.")
@@ -152,8 +152,8 @@ def reviews(project_dir):
 @click.option("--project-dir", "-p", default=None)
 def stats(project_dir):
     config = load_config(project_dir)
-    claudex_dir = init_claudex_dir(project_dir)
-    session = SessionManager(str(claudex_dir))
+    codeshock_dir = init_codeshock_dir(project_dir)
+    session = SessionManager(str(codeshock_dir))
 
     click.echo(f"Reviews: {session.total_reviews}")
     click.echo(f"Issues:  {session.total_issues}")
@@ -180,8 +180,8 @@ def stats(project_dir):
 @click.option("--output", "-o", default=None)
 def export_reviews(project_dir, fmt, output):
     config = load_config(project_dir)
-    claudex_dir = init_claudex_dir(project_dir)
-    session = SessionManager(str(claudex_dir))
+    codeshock_dir = init_codeshock_dir(project_dir)
+    session = SessionManager(str(codeshock_dir))
 
     if fmt == "markdown":
         content = session.export_markdown()
@@ -200,12 +200,12 @@ def export_reviews(project_dir, fmt, output):
 @main.command()
 @click.option("--project-dir", "-p", default=None)
 def init(project_dir):
-    claudex_dir = init_claudex_dir(project_dir)
+    codeshock_dir = init_codeshock_dir(project_dir)
     config = load_config(project_dir)
-    config.claudex_dir = str(claudex_dir)
+    config.codeshock_dir = str(codeshock_dir)
     sync_context(config)
-    click.echo(f"Initialized .claudex/ in {claudex_dir.parent}")
-    click.echo(f"Config: {claudex_dir}/config.toml")
+    click.echo(f"Initialized .codeshock/ in {codeshock_dir.parent}")
+    click.echo(f"Config: {codeshock_dir}/config.toml")
     click.echo(f"AGENTS.md written to {config.project_dir}/AGENTS.md")
 
 

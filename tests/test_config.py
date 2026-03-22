@@ -2,7 +2,7 @@ import os
 import tempfile
 from pathlib import Path
 
-from claudex.config import load_config, init_claudex_dir, find_project_root
+from codeshock.config import load_config, init_codeshock_dir, find_project_root
 
 
 def test_find_project_root_with_git():
@@ -18,15 +18,15 @@ def test_find_project_root_without_git():
         assert root == Path(tmpdir).resolve()
 
 
-def test_init_claudex_dir():
+def test_init_codeshock_dir():
     with tempfile.TemporaryDirectory() as tmpdir:
         (Path(tmpdir) / ".git").mkdir()
-        claudex_dir = init_claudex_dir(tmpdir)
-        assert claudex_dir.exists()
-        assert (claudex_dir / "config.toml").exists()
-        assert (claudex_dir / "reviews").exists()
-        assert (claudex_dir / "queue").exists()
-        assert (claudex_dir / ".gitignore").exists()
+        codeshock_dir = init_codeshock_dir(tmpdir)
+        assert codeshock_dir.exists()
+        assert (codeshock_dir / "config.toml").exists()
+        assert (codeshock_dir / "reviews").exists()
+        assert (codeshock_dir / "queue").exists()
+        assert (codeshock_dir / ".gitignore").exists()
 
 
 def test_load_config_defaults():
