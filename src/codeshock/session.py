@@ -15,6 +15,12 @@ class ReviewRecord:
     summary: str
     trigger: str
     diff_size: int
+    thoughts: str = ""
+    suggestions: List[str] = None
+
+    def __post_init__(self):
+        if self.suggestions is None:
+            self.suggestions = []
 
     def to_dict(self) -> Dict:
         return asdict(self)
@@ -29,8 +35,10 @@ class SessionManager:
         self.codeshock_dir = Path(codeshock_dir)
         self.session_file = self.codeshock_dir / "session.jsonl"
         self.reviews_dir = self.codeshock_dir / "reviews"
+        self.chat_file = self.codeshock_dir / "chat.jsonl"
         self.reviews_dir.mkdir(exist_ok=True)
         self._reviews: List[ReviewRecord] = []
+        self._chat_history: List[Dict] = []
         self._start_time = time.time()
         self._load_session()
 
@@ -44,6 +52,13 @@ class SessionManager:
                             self._reviews.append(ReviewRecord.from_dict(data["data"]))
             except Exception:
                 pass
+        if self.chat_file.exists():
+            try:
+                for line in self.chat_file.read_text().strip().split("\n"):
+                    if line.strip():
+                        self._chat_history.append(json.loads(line))
+            except Exception:
+                pass
 
     def add_review(self, review: ReviewRecord):
         self._reviews.append(review)
@@ -54,6 +69,16 @@ class SessionManager:
 
         review_file = self.reviews_dir / f"{int(review.timestamp)}.json"
         review_file.write_text(json.dumps(review.to_dict(), indent=2))
+
+    def add_chat(self, role: str, text: str):
+        entry = {"role": role, "text": text, "ts": time.time()}
+        self._chat_history.append(entry)
+        with open(self.chat_file, "a") as f:
+            f.write(json.dumps(entry) + "\n")
+
+    @property
+    def chat_history(self) -> List[Dict]:
+        return self._chat_history
 
     @property
     def reviews(self) -> List[ReviewRecord]:

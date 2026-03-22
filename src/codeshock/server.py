@@ -14,15 +14,15 @@ import threading
 from pathlib import Path
 
 import uvicorn
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 
 from .config import load_config, init_codeshock_dir
 from .context import sync_context
 from .session import SessionManager, ReviewRecord
 from .watcher import CodeshockWatcher
-from .reviewer import get_git_diff, run_codex_review
+from .reviewer import get_git_diff, run_codex_review, run_codex_chat, token_budget
 
 
 app = FastAPI(title="codeshock")
@@ -207,6 +207,44 @@ async def reviews_ws(websocket: WebSocket):
                     await websocket.send_text(json.dumps(data))
     except WebSocketDisconnect:
         pass
+
+
+@app.get("/api/budget")
+async def get_budget():
+    return token_budget.usage
+
+
+@app.get("/api/chat/history")
+async def get_chat_history():
+    if STATE["session"]:
+        return {"messages": STATE["session"].chat_history[-50:]}
+    return {"messages": []}
+
+
+@app.post("/api/chat")
+async def chat_endpoint(request: Request):
+    body = await request.json()
+    message = body.get("message", "").strip()
+    if not message:
+        return JSONResponse({"error": "Empty message"}, status_code=400)
+    if len(message) > 2000:
+        return JSONResponse({"error": "Message too long (max 2000 chars)"}, status_code=400)
+
+    project_dir = STATE["project_dir"] or os.getcwd()
+
+    # Save user message
+    if STATE["session"]:
+        STATE["session"].add_chat("user", message)
+
+    # Run in thread to not block event loop
+    loop = asyncio.get_event_loop()
+    response = await loop.run_in_executor(None, run_codex_chat, project_dir, message)
+
+    # Save assistant response
+    if STATE["session"]:
+        STATE["session"].add_chat("assistant", response)
+
+    return {"response": response, "budget": token_budget.usage}
 
 
 app.mount("/static", StaticFiles(directory=str(WEB_DIR)), name="static")
